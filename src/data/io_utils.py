@@ -17,6 +17,19 @@ from tqdm import tqdm
 from src.data.paths import ensure_dir
 
 
+def _download_with_urllib(url: str, tmp: Path, dest_name: str) -> None:
+    context = ssl.create_default_context(cafile=certifi.where())
+    with urlopen(url, context=context) as resp, open(tmp, "wb") as out:
+        total = int(resp.headers.get("Content-Length") or 0)
+        with tqdm(total=total or None, unit="B", unit_scale=True, desc=dest_name) as bar:
+            while True:
+                chunk = resp.read(1024 * 1024)
+                if not chunk:
+                    break
+                out.write(chunk)
+                bar.update(len(chunk))
+
+
 def download_url(url: str, dest: Path) -> Path:
     dest = Path(dest)
     if dest.is_file() and dest.stat().st_size > 0:
@@ -24,22 +37,26 @@ def download_url(url: str, dest: Path) -> Path:
     ensure_dir(dest.parent)
     tmp = dest.with_suffix(dest.suffix + ".part")
     curl = shutil.which("curl")
+    curl_ok = False
     if curl is not None:
-        subprocess.run(
-            [curl, "-L", "--fail", "--retry", "3", "--progress-bar", "-o", str(tmp), url],
-            check=True,
+        result = subprocess.run(
+            [
+                curl,
+                "-L",
+                "--fail",
+                "--retry",
+                "3",
+                "--progress-bar",
+                "--cacert",
+                certifi.where(),
+                "-o",
+                str(tmp),
+                url,
+            ]
         )
-    else:
-        context = ssl.create_default_context(cafile=certifi.where())
-        with urlopen(url, context=context) as resp, open(tmp, "wb") as out:
-            total = int(resp.headers.get("Content-Length") or 0)
-            with tqdm(total=total or None, unit="B", unit_scale=True, desc=dest.name) as bar:
-                while True:
-                    chunk = resp.read(1024 * 1024)
-                    if not chunk:
-                        break
-                    out.write(chunk)
-                    bar.update(len(chunk))
+        curl_ok = result.returncode == 0
+    if not curl_ok:
+        _download_with_urllib(url, tmp, dest.name)
     tmp.replace(dest)
     return dest
 
