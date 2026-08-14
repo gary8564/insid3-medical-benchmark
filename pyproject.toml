@@ -1,0 +1,40 @@
+[project]
+name = "insid3-medical-benchmark"
+version = "0.1.0"
+description = "Cross-domain medical stress test of INSID3 (DINOv3 in-context segmentation)"
+readme = "README.md"
+requires-python = ">=3.10,<3.11"
+dependencies = [
+    "numpy>=1.24",
+    "pillow>=10.0",
+    "nibabel>=5.0",
+    "tqdm>=4.60",
+    "einops>=0.8",
+    "scikit-learn>=1.5",
+    "matplotlib>=3.8",
+    "huggingface_hub>=0.24",
+    "certifi>=2024.0",
+]
+
+[project.optional-dependencies]
+torch = [
+    "torch>=2.2",
+    "torchvision>=0.17",
+    "pycocotools>=2.0",
+]
+
+[dependency-groups]
+dev = [
+    "pytest>=8.0",
+]
+
+[tool.uv]
+package = false
+
+[tool.pytest.ini_options]
+pythonpath = ["."]
+testpaths = ["tests"]
+addopts = "-q"
+markers = [
+    "slow: local data cache or a real INSID3 forward pass",
+]

@@ -1,0 +1,22 @@
+.idea/
+.vscode/
+.spyproject/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+.venv/
+.env
+*.egg-info/
+.DS_Store
+
+# Local data, weights, and run output (not fixtures)
+data/
+pretrain/
+output/
+
+# Keep result directory layout; ignore generated tables/figures
+results/tables/*
+results/figures/*
+results/extension_backbone_ablation/*
+!results/**/.gitkeep
