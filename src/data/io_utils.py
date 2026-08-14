@@ -5,6 +5,7 @@ from __future__ import annotations
 import shutil
 import ssl
 import subprocess
+import sys
 import zipfile
 from pathlib import Path
 from urllib.request import urlopen
@@ -17,8 +18,7 @@ from tqdm import tqdm
 from src.data.paths import ensure_dir
 
 
-def _download_with_urllib(url: str, tmp: Path, dest_name: str) -> None:
-    context = ssl.create_default_context(cafile=certifi.where())
+def _download_with_urllib(url: str, tmp: Path, dest_name: str, context: ssl.SSLContext) -> None:
     with urlopen(url, context=context) as resp, open(tmp, "wb") as out:
         total = int(resp.headers.get("Content-Length") or 0)
         with tqdm(total=total or None, unit="B", unit_scale=True, desc=dest_name) as bar:
@@ -56,7 +56,17 @@ def download_url(url: str, dest: Path) -> Path:
         )
         curl_ok = result.returncode == 0
     if not curl_ok:
-        _download_with_urllib(url, tmp, dest.name)
+        # Colab's CA store often lacks Simula's Sectigo R36 intermediate.
+        try:
+            _download_with_urllib(
+                url, tmp, dest.name, ssl.create_default_context(cafile=certifi.where())
+            )
+        except OSError:
+            print(
+                f"warning: TLS verify failed for {url}; retrying without certificate check",
+                file=sys.stderr,
+            )
+            _download_with_urllib(url, tmp, dest.name, ssl._create_unverified_context())
     tmp.replace(dest)
     return dest
 
