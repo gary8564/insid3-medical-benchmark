@@ -53,14 +53,14 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
         type=int,
         default=INSID3_N_EPISODES,
         help=(
-            f"Number of random 1-shot episodes (INSID3 lung/ISIC default {INSID3_N_EPISODES})"
+            f"Number of random episodes (INSID3 lung/ISIC default {INSID3_N_EPISODES})"
         ),
     )
     parser.add_argument(
         "--shots",
         type=int,
         default=DEFAULT_SHOTS,
-        help="Reference images per episode (INSID3 default 1; only 1-shot is implemented)",
+        help="Same-class reference images per episode (INSID3 default 1.)",
     )
     parser.add_argument(
         "--seed",
@@ -124,9 +124,12 @@ def serialize_episodes(episodes: list[Episode]) -> list[dict[str, str | int]]:
             "episode_index": ep.episode_index,
             "dataset": ep.dataset,
             "reference_id": ep.reference_id,
+            "reference_ids": list(ep.reference_ids),
             "target_id": ep.target_id,
             "reference_image": str(ep.reference_image),
+            "reference_images": [str(path) for path in ep.reference_images],
             "reference_mask": str(ep.reference_mask),
+            "reference_masks": [str(path) for path in ep.reference_masks],
             "target_image": str(ep.target_image),
             "target_mask": str(ep.target_mask),
         }
@@ -205,7 +208,8 @@ def run_inference(args: argparse.Namespace, episodes: list[Episode] | None = Non
         iterator = tqdm(episodes, desc=args.dataset)
     for ep in iterator:
         try:
-            model.set_reference(str(ep.reference_image), str(ep.reference_mask))
+            for image, mask in zip(ep.reference_images, ep.reference_masks, strict=True):
+                model.set_reference(str(image), str(mask))
             model.set_target(str(ep.target_image))
             pred = as_binary_mask(model.segment())
         finally:
@@ -226,6 +230,7 @@ def run_inference(args: argparse.Namespace, episodes: list[Episode] | None = Non
             {
                 "episode_index": ep.episode_index,
                 "reference_id": ep.reference_id,
+                "reference_ids": list(ep.reference_ids),
                 "target_id": ep.target_id,
                 "IoU": iou,
                 "Dice": dice,

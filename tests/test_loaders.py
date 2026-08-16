@@ -55,11 +55,31 @@ def test_insid3_id_pairs_match_lung_py_rng_stream():
         while True:
             reference_id = str(np.random.choice(ids, 1, replace=False)[0])
             if reference_id != target_id:
-                expected.append((reference_id, target_id))
+                expected.append(((reference_id,), target_id))
                 break
 
     assert sample_insid3_id_pairs(ids, n_episodes=12, seed=0) == expected
-    assert all(ref != tgt for ref, tgt in expected)
+    assert all(ref != tgt for refs, tgt in expected for ref in refs)
+
+
+def test_kshot_id_pairs_match_lung_py_rng_stream():
+    ids = ["a", "b", "c"]
+    np.random.seed(0)
+    expected: list[tuple[tuple[str, ...], str]] = []
+    for _ in range(8):
+        target_id = str(np.random.choice(ids, 1, replace=False)[0])
+        reference_ids: list[str] = []
+        while True:
+            reference_id = str(np.random.choice(ids, 1, replace=False)[0])
+            if reference_id != target_id:
+                reference_ids.append(reference_id)
+            if len(reference_ids) == 5:
+                expected.append((tuple(reference_ids), target_id))
+                break
+
+    assert sample_insid3_id_pairs(ids, n_episodes=8, n_shots=5, seed=0) == expected
+    assert all(ref != tgt for refs, tgt in expected for ref in refs)
+    assert all(len(refs) == 5 for refs, _ in expected)
 
 
 def test_insid3_episodes_sample_from_all_paired_images(tmp_path: Path):

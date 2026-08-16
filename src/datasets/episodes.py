@@ -25,13 +25,25 @@ DOMAIN_DIRS = {
 @dataclass(frozen=True)
 class Episode:
     dataset: str
-    reference_id: str
+    reference_ids: tuple[str, ...]
     target_id: str
-    reference_image: Path
-    reference_mask: Path
+    reference_images: tuple[Path, ...]
+    reference_masks: tuple[Path, ...]
     target_image: Path
     target_mask: Path
     episode_index: int = 0
+
+    @property
+    def reference_id(self) -> str:
+        return self.reference_ids[0]
+
+    @property
+    def reference_image(self) -> Path:
+        return self.reference_images[0]
+
+    @property
+    def reference_mask(self) -> Path:
+        return self.reference_masks[0]
 
 
 def processed_domain_root(data_root: Path | str, dataset: str) -> Path:
@@ -52,30 +64,34 @@ def sample_insid3_id_pairs(
     n_episodes: int = INSID3_N_EPISODES,
     n_shots: int = DEFAULT_SHOTS,
     seed: int = DEFAULT_SEED,
-) -> list[tuple[str, str]]:
+) -> list[tuple[tuple[str, ...], str]]:
     """
-    Match INSID3 `DatasetLung.sample_episode` for 1-shot episodes (reference != target).
+    Match INSID3 `DatasetLung.sample_episode` (reference != target).
 
     `lung.py` draws with the global NumPy RNG after `np.random.seed(args.seed)`.
     `RandomState(seed)` is that same generator, isolated from other NumPy use.
+    For k-shot it appends every draw that is not the target, so the same reference can appear more than once.
     """
-    if n_shots != 1:
-        raise ValueError("only 1-shot sampling is implemented (INSID3 --shots default)")
+    if n_shots < 1:
+        raise ValueError("n_shots must be >= 1")
     if n_episodes < 1:
         raise ValueError("n_episodes must be >= 1")
     pool = [str(x) for x in ids]
     if len(set(pool)) != len(pool):
         raise ValueError("ids must be unique")
     if len(pool) < 2:
-        raise ValueError("need at least two images to sample a 1-shot episode")
+        raise ValueError("need at least two images to sample an episode")
     rng = np.random.RandomState(seed)
-    pairs: list[tuple[str, str]] = []
+    pairs: list[tuple[tuple[str, ...], str]] = []
     for _ in range(n_episodes):
         target_id = str(rng.choice(pool, 1, replace=False)[0])
+        reference_ids: list[str] = []
         while True:
             reference_id = str(rng.choice(pool, 1, replace=False)[0])
             if reference_id != target_id:
-                pairs.append((reference_id, target_id))
+                reference_ids.append(reference_id)
+            if len(reference_ids) == n_shots:
+                pairs.append((tuple(reference_ids), target_id))
                 break
     return pairs
 
@@ -88,22 +104,21 @@ def sample_insid3_episodes(
     n_shots: int = DEFAULT_SHOTS,
     seed: int = DEFAULT_SEED,
 ) -> list[Episode]:
-    """Random 1-shot episodes from every paired image on disk (INSID3 lung/ISIC)."""
+    """Random k-shot episodes from every paired image on disk (INSID3 lung/ISIC)."""
     index = load_paired_index(data_root, dataset)
     pool = sorted(index)
     episodes: list[Episode] = []
-    for episode_index, (reference_id, target_id) in enumerate(
+    for episode_index, (reference_ids, target_id) in enumerate(
         sample_insid3_id_pairs(pool, n_episodes=n_episodes, n_shots=n_shots, seed=seed)
     ):
-        ref_image, ref_mask = index[reference_id]
         target_image, target_mask = index[target_id]
         episodes.append(
             Episode(
                 dataset=dataset,
-                reference_id=reference_id,
+                reference_ids=reference_ids,
                 target_id=target_id,
-                reference_image=ref_image,
-                reference_mask=ref_mask,
+                reference_images=tuple(index[rid][0] for rid in reference_ids),
+                reference_masks=tuple(index[rid][1] for rid in reference_ids),
                 target_image=target_image,
                 target_mask=target_mask,
                 episode_index=episode_index,

@@ -29,6 +29,35 @@ def test_debiased_flag_defaults_on():
     assert off.debiased is False
 
 
+def test_dry_run_five_shot_lists_all_references(tmp_path: Path):
+    data_root = _write_polyp_cache(tmp_path, ["a", "b", "c", "d", "e", "f"])
+    output_dir = tmp_path / "out"
+    code = main(
+        [
+            "--dataset",
+            "polyp",
+            "--input-dir",
+            str(data_root),
+            "--output-dir",
+            str(output_dir),
+            "--dry-run",
+            "--shots",
+            "5",
+            "--episodes",
+            "4",
+        ]
+    )
+    assert code == 0
+    payload = json.loads(_episodes_json(output_dir).read_text())
+    assert len(payload) == 4
+    for row in payload:
+        assert len(row["reference_ids"]) == 5
+        assert row["reference_id"] == row["reference_ids"][0]
+        assert row["target_id"] not in row["reference_ids"]
+        assert len(row["reference_images"]) == 5
+        assert all(Path(path).is_file() for path in row["reference_images"])
+
+
 def test_dry_run_builds_episodes_without_loading_insid3(tmp_path: Path):
     data_root = _write_polyp_cache(tmp_path)
     output_dir = tmp_path / "out"
