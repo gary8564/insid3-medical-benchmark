@@ -96,6 +96,15 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser.add_argument("--svd-comps", type=int, default=HEADLINE_SVD_COMPONENTS)
     parser.add_argument("--tau", type=float, default=0.6)
     parser.add_argument("--merge-thresh", type=float, default=0.2)
+    parser.add_argument(
+        "--debiased",
+        action=argparse.BooleanOptionalAction,
+        default=True,
+        help=(
+            "Positional debiasing (INSID3 default). "
+            "--no-debiased matches in raw DINOv3 space."
+        ),
+    )
     parser.add_argument("--device", default="auto")
     return parser.parse_args(argv)
 
@@ -180,6 +189,7 @@ def run_inference(args: argparse.Namespace, episodes: list[Episode] | None = Non
         tau=args.tau,
         merge_threshold=args.merge_thresh,
         device=args.device,
+        use_debiased=args.debiased,
     )
 
     out_dir = dataset_output_dir(args)
@@ -231,6 +241,7 @@ def run_inference(args: argparse.Namespace, episodes: list[Episode] | None = Non
         "model_size": args.model_size,
         "image_size": args.image_size,
         "svd_comps": args.svd_comps,
+        "debiased": bool(args.debiased),
         "n": int(summary["n"]),
         "mIoU": summary["mIoU"],
         "Dice": summary["Dice"],

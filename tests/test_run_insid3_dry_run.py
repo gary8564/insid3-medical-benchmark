@@ -6,7 +6,7 @@ import sys
 from pathlib import Path
 
 from src.data.constants import INSID3_N_EPISODES, PREVIEW_N
-from src.run_insid3 import main
+from src.run_insid3 import main, parse_args
 from tests.conftest import write_domain_cache
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
@@ -20,6 +20,13 @@ def _write_polyp_cache(tmp_path: Path, ids: list[str] | None = None) -> Path:
 
 def _episodes_json(output_dir: Path) -> Path:
     return output_dir / "polyp" / "episodes.json"
+
+
+def test_debiased_flag_defaults_on():
+    on = parse_args(["--dataset", "polyp"])
+    off = parse_args(["--dataset", "polyp", "--no-debiased"])
+    assert on.debiased is True
+    assert off.debiased is False
 
 
 def test_dry_run_builds_episodes_without_loading_insid3(tmp_path: Path):

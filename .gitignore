@@ -10,8 +10,7 @@ __pycache__/
 *.egg-info/
 .DS_Store
 
-# Local data, weights, and run output (not fixtures).
-# Anchor to repo root so src/data/ is not ignored.
+# Local data, weights, and run output
 /data/
 /pretrain/
 /output/
