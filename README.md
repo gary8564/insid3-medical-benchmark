@@ -10,7 +10,7 @@ INSID3 has already been shown to work on medical images (ISIC skin lesions 54.4%
 | **CT** | Kidney tumor (KiPA22) | — |
 | **MRI** | — | Cardiac LV cavity (ACDC) |
 
-Headline eval is one-shot INSID3 only (**600 random 1-shot episodes** per domain, same as INSID3 lung/ISIC: random target + a different random reference, seed 0, `--image-size 768`). Code and tests run locally first; Colab Pro is a GPU worker that calls the same CLI.
+Headline eval is one-shot INSID3 only (**600 random 1-shot episodes** per domain, same as INSID3 lung/ISIC: random target + a different random reference, seed 0, `--image-size 768`). Predicted masks are bilinearly upsampled from the patch grid; this study does **not** apply INSID3’s optional CRF refinement. Code and tests run locally first; Colab Pro is a GPU worker that calls the same CLI.
 
 ---
 

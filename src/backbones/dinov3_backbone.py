@@ -120,7 +120,6 @@ def build_insid3_model(
     tau: float = 0.6,
     merge_threshold: float = 0.2,
     device: str | None = None,
-    use_debiased: bool = True,
 ):
     """Construct INSID3 with local DINOv3 weights (no CRF)."""
     try:
@@ -145,27 +144,10 @@ def build_insid3_model(
 
     from models.insid3 import INSID3
 
-    class INSID3DebiasSwitch(INSID3):
-        """Local toggle; do not edit the INSID3 submodule.
-
-        Segmentation always debiases in upstream `predict_mask`. Keypoint
-        matching already exposes `use_debiased`. This subclass is the
-        segmentation equivalent.
-        """
-
-        def __init__(self, *args, use_debiased: bool = True, **kwargs):
-            self.use_debiased = use_debiased
-            super().__init__(*args, **kwargs)
-
-        def _debias_features(self, fmaps_norm):
-            if not self.use_debiased:
-                return fmaps_norm
-            return super()._debias_features(fmaps_norm)
-
     resolved_device = auto_device() if device in (None, "auto") else device
     svd = clamp_svd_components(model_size, image_size, svd_components)
     encoder = load_dinov3_encoder(model_size, weights)
-    model = INSID3DebiasSwitch(
+    model = INSID3(
         encoder=encoder,
         image_size=image_size,
         svd_components=svd,
@@ -174,7 +156,6 @@ def build_insid3_model(
         mask_refiner="bilinear",
         resize_to_orig_size=True,
         device=resolved_device,
-        use_debiased=use_debiased,
     )
     for param in model.parameters():
         param.requires_grad = False

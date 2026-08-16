@@ -89,14 +89,14 @@ def test_insid3_episodes_sample_from_all_paired_images(tmp_path: Path):
     built = sample_insid3_episodes(tmp_path, "polyp", n_episodes=40, seed=0)
 
     assert len(built) == 40
-    assert all(ep.reference_id != ep.target_id for ep in built)
-    assert {ep.reference_id for ep in built} <= set(ids)
+    assert all(ref != ep.target_id for ep in built for ref in ep.reference_ids)
+    assert {ref for ep in built for ref in ep.reference_ids} <= set(ids)
     assert {ep.target_id for ep in built} <= set(ids)
-    assert len({ep.reference_id for ep in built}) > 1
+    assert len({ep.reference_ids[0] for ep in built}) > 1
     assert [ep.episode_index for ep in built] == list(range(40))
     again = sample_insid3_episodes(tmp_path, "polyp", n_episodes=40, seed=0)
-    assert [(a.reference_id, a.target_id) for a in again] == [
-        (b.reference_id, b.target_id) for b in built
+    assert [(a.reference_ids, a.target_id) for a in again] == [
+        (b.reference_ids, b.target_id) for b in built
     ]
 
 
@@ -113,7 +113,7 @@ def test_select_preview_episodes_is_seeded_random_subset_not_prefix(tmp_path: Pa
     by_index = {ep.episode_index: ep for ep in full}
     for ep in preview:
         match = by_index[ep.episode_index]
-        assert (ep.reference_id, ep.target_id) == (match.reference_id, match.target_id)
+        assert (ep.reference_ids, ep.target_id) == (match.reference_ids, match.target_id)
 
 
 def test_jpg_image_pairs_with_png_mask(tmp_path: Path):

@@ -76,8 +76,8 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser.add_argument(
         "--output-dir",
         type=Path,
-        default=Path("results"),
-        help="Write JSON and preds under --output-dir/<dataset>/",
+        default=None,
+        help="Write JSON and preds here. Default: results/<dataset>/",
     )
     parser.add_argument(
         "--preview",
@@ -96,21 +96,14 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser.add_argument("--svd-comps", type=int, default=HEADLINE_SVD_COMPONENTS)
     parser.add_argument("--tau", type=float, default=0.6)
     parser.add_argument("--merge-thresh", type=float, default=0.2)
-    parser.add_argument(
-        "--debiased",
-        action=argparse.BooleanOptionalAction,
-        default=True,
-        help=(
-            "Positional debiasing (INSID3 default). "
-            "--no-debiased matches in raw DINOv3 space."
-        ),
-    )
     parser.add_argument("--device", default="auto")
     return parser.parse_args(argv)
 
 
 def dataset_output_dir(args: argparse.Namespace) -> Path:
-    return args.output_dir / args.dataset
+    if args.output_dir is None:
+        return Path("results") / args.dataset
+    return Path(args.output_dir)
 
 
 def write_json(path: Path, payload: object) -> None:
@@ -118,17 +111,14 @@ def write_json(path: Path, payload: object) -> None:
     path.write_text(json.dumps(payload, indent=2) + "\n")
 
 
-def serialize_episodes(episodes: list[Episode]) -> list[dict[str, str | int]]:
+def serialize_episodes(episodes: list[Episode]) -> list[dict[str, object]]:
     return [
         {
             "episode_index": ep.episode_index,
             "dataset": ep.dataset,
-            "reference_id": ep.reference_id,
             "reference_ids": list(ep.reference_ids),
             "target_id": ep.target_id,
-            "reference_image": str(ep.reference_image),
             "reference_images": [str(path) for path in ep.reference_images],
-            "reference_mask": str(ep.reference_mask),
             "reference_masks": [str(path) for path in ep.reference_masks],
             "target_image": str(ep.target_image),
             "target_mask": str(ep.target_mask),
@@ -192,7 +182,6 @@ def run_inference(args: argparse.Namespace, episodes: list[Episode] | None = Non
         tau=args.tau,
         merge_threshold=args.merge_thresh,
         device=args.device,
-        use_debiased=args.debiased,
     )
 
     out_dir = dataset_output_dir(args)
@@ -229,7 +218,6 @@ def run_inference(args: argparse.Namespace, episodes: list[Episode] | None = Non
         per_item.append(
             {
                 "episode_index": ep.episode_index,
-                "reference_id": ep.reference_id,
                 "reference_ids": list(ep.reference_ids),
                 "target_id": ep.target_id,
                 "IoU": iou,
@@ -246,7 +234,6 @@ def run_inference(args: argparse.Namespace, episodes: list[Episode] | None = Non
         "model_size": args.model_size,
         "image_size": args.image_size,
         "svd_comps": args.svd_comps,
-        "debiased": bool(args.debiased),
         "n": int(summary["n"]),
         "mIoU": summary["mIoU"],
         "Dice": summary["Dice"],

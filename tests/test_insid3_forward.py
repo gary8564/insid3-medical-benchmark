@@ -51,8 +51,8 @@ def test_insid3_one_pair(tmp_path: Path):
         == 0
     )
 
-    metrics = json.loads((tmp_path / "out" / "polyp" / "metrics.json").read_text())
-    pred = np.array(Image.open(next((tmp_path / "out" / "polyp" / "preds").glob("*.png"))))
+    metrics = json.loads((tmp_path / "out" / "metrics.json").read_text())
+    pred = np.array(Image.open(next((tmp_path / "out" / "preds").glob("*.png"))))
     assert pred.shape == (32, 32)
     assert set(np.unique((pred > 0).astype(np.uint8)).tolist()) <= {0, 1}
     assert math.isfinite(metrics["mIoU"])

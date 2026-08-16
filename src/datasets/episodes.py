@@ -24,6 +24,8 @@ DOMAIN_DIRS = {
 
 @dataclass(frozen=True)
 class Episode:
+    """One k-shot episode. JSON writes ``reference_ids`` as a list (length 1 if 1-shot)."""
+
     dataset: str
     reference_ids: tuple[str, ...]
     target_id: str
@@ -32,18 +34,6 @@ class Episode:
     target_image: Path
     target_mask: Path
     episode_index: int = 0
-
-    @property
-    def reference_id(self) -> str:
-        return self.reference_ids[0]
-
-    @property
-    def reference_image(self) -> Path:
-        return self.reference_images[0]
-
-    @property
-    def reference_mask(self) -> Path:
-        return self.reference_masks[0]
 
 
 def processed_domain_root(data_root: Path | str, dataset: str) -> Path:

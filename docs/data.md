@@ -158,13 +158,13 @@ uv run python src/run_insid3.py --dataset polyp --preview 3
 # Cheap local check (ViT-S, one episode, CPU). Not a result.
 uv run python src/run_insid3.py --dataset polyp --model-size small --preview 1 --device cpu
 
-# Headline: 600 random 1-shot episodes, ViT-L, --image-size 768, --seed 0
+# Headline: 600 random 1-shot episodes, ViT-L, --image-size 768, --seed 0, no CRF
 uv run python src/run_insid3.py --dataset polyp
 uv run python src/run_insid3.py --dataset kidney_tumor
 uv run python src/run_insid3.py --dataset cardiac
 ```
 
-JSON and predicted masks go under `results/<dataset>/` (`episodes.json` or `metrics.json`, plus `preds/`). Override with `--output-dir`.
+JSON and predicted masks go under `--output-dir` (`episodes.json` or `metrics.json`, plus `preds/`). The default is `results/<dataset>/`. Ablations pass a nested run directory, e.g. `results/cardiac/five-shot`.
 
 If `data/processed` exists:
 
