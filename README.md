@@ -10,7 +10,8 @@ INSID3 has already been shown to work on medical images (ISIC skin lesions 54.4%
 | **CT** | Kidney tumor (KiPA22) | — |
 | **MRI** | — | Cardiac LV cavity (ACDC) |
 
-Headline eval is one-shot INSID3 only (**600 random 1-shot episodes** per domain, same as INSID3 lung/ISIC: random target + a different random reference, seed 0, `--image-size 768`). Predicted masks are bilinearly upsampled from the patch grid; this study does **not** apply INSID3’s optional CRF refinement. Code and tests run locally first; Colab Pro is a GPU worker that calls the same CLI.
+Evaluation is one-shot INSID3 only (**600 random 1-shot episodes** per domain: random target + a different random reference, seed 0, `--image-size 768`). Predicted masks are bilinearly upsampled from the patch grid.
+This study does **not** apply INSID3’s optional CRF refinement. 
 
 ---
 
@@ -40,13 +41,24 @@ Python 3.10 is pinned in `.python-version` (INSID3). `uv` will install it if nee
 Phase 2+ (local INSID3 / Colab):
 
 ```bash
-git submodule update --init
+git submodule update --init --recursive
 uv sync --extra torch --group dev
 ```
 
-If you cloned this repo without submodules, that `git submodule update --init` step is required. A new clone can use `git clone --recurse-submodules` instead. See [third_party/README.md](third_party/README.md).
+Phase 6–8 (Matcher / GF-SAM / FlexiCT / MedSAM2) on a local GPU:
 
-Colab (torch already installed): `%pip install uv && uv pip install --system .[torch]`
+```bash
+uv sync --extra torch --extra methods --group dev
+```
+
+If you cloned this repo without submodules, that `git submodule update --init --recursive` step is required. A new clone can use `git clone --recurse-submodules` instead. See [third_party/README.md](third_party/README.md).
+
+Colab (torch already installed): do **not** `uv pip install .[torch]` (that would download a second torch). Install project deps plus the methods extra:
+
+```bash
+uv pip install --system nibabel einops huggingface_hub pycocotools
+uv pip install --system opencv-python-headless pot omegaconf iopath timm scipy hydra-core
+```
 
 Request [DINOv3](https://github.com/facebookresearch/dinov3) weight access now. See [docs/data.md](docs/data.md).
 
@@ -70,6 +82,20 @@ uv run python src/run_insid3.py --dataset polyp --model-size small --preview 1 -
 ```
 
 Headline eval (typically Colab GPU) omits `--preview` (ViT-L, `--image-size 768`, 600 random 1-shot episodes, `--seed 0`). Dataset details: [docs/data.md](docs/data.md).
+
+Phase 6–8 reuse the Phase 3 `episodes.json` (same 600 pairs). Smoke with `--preview 1` before a full run:
+
+```bash
+python -m src.methods.gfsam --dataset polyp --preview 1 \
+  --episodes-json results/polyp/episodes.json
+python -m src.methods.matcher --dataset polyp --preview 1 \
+  --episodes-json results/polyp/episodes.json
+python -m src.methods.insid3 --backbone flexict2d --dataset kidney_tumor --preview 1 \
+  --episodes-json results/kidney_tumor/episodes.json \
+  --output-dir results/flexict2d/debiased
+python -m src.methods.medsam2 --dataset polyp --preview 1 \
+  --episodes-json results/polyp/episodes.json
+```
 
 ## Results
 

@@ -1,3 +1,15 @@
 [submodule "third_party/INSID3"]
 	path = third_party/INSID3
 	url = https://github.com/visinf/INSID3.git
+[submodule "third_party/GF-SAM"]
+	path = third_party/GF-SAM
+	url = https://github.com/ANDYZAQ/GF-SAM.git
+[submodule "third_party/Matcher"]
+	path = third_party/Matcher
+	url = https://github.com/aim-uofa/Matcher.git
+[submodule "third_party/FlexiCT"]
+	path = third_party/FlexiCT
+	url = https://github.com/ricklisz/FlexiCT.git
+[submodule "third_party/MedSAM2"]
+	path = third_party/MedSAM2
+	url = https://github.com/bowang-lab/MedSAM2.git

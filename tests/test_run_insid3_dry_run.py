@@ -5,6 +5,8 @@ import subprocess
 import sys
 from pathlib import Path
 
+import pytest
+
 from src.data.constants import INSID3_N_EPISODES, PREVIEW_N
 from src.run_insid3 import main
 from tests.conftest import write_domain_cache
@@ -49,6 +51,23 @@ def test_dry_run_five_shot_lists_all_references(tmp_path: Path):
         assert row["target_id"] not in row["reference_ids"]
         assert len(row["reference_images"]) == 5
         assert all(Path(path).is_file() for path in row["reference_images"])
+
+
+def test_flexict2d_rejects_polyp(tmp_path: Path):
+    from src.methods.insid3.run import load_episodes, parse_args
+
+    args = parse_args(
+        [
+            "--dataset",
+            "polyp",
+            "--backbone",
+            "flexict2d",
+            "--episodes-json",
+            str(tmp_path / "episodes.json"),
+        ]
+    )
+    with pytest.raises(SystemExit, match="out of scope"):
+        load_episodes(args)
 
 
 def test_dry_run_builds_episodes_without_loading_insid3(tmp_path: Path):

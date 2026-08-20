@@ -31,7 +31,7 @@ insid3-medical-benchmark/
 ```bash
 git clone --recurse-submodules <this-repo-url>
 # or, if already cloned:
-git submodule update --init
+git submodule update --init --recursive
 ```
 
 Only **splits that ship segmentation masks** are downloaded. Challenge test sets without public GT are skipped.
@@ -128,7 +128,19 @@ INSID3 needs a **frozen DINOv3** checkpoint. Access is gated by Meta ([facebookr
 pretrain/dinov3_vitl16_pretrain_lvd1689m-8aa4cbdd.pth   # headline (Large)
 pretrain/dinov3_vits16_pretrain_lvd1689m-08c60483.pth   # local check (Small)
 pretrain/dinov3_vitb16_pretrain_lvd1689m-73cec8be.pth   # optional
+pretrain/dinov2_vitl14_pretrain.pth                    # Matcher + GF-SAM (public)
+pretrain/sam_vit_h_4b8939.pth                          # Matcher + GF-SAM (public, ~2.4 GB)
+pretrain/flexict_2d_teacher.pth                        # Phase 7, CC BY-NC-ND 4.0
+pretrain/MedSAM2_latest.pt                             # Phase 8
 ```
+
+Public checkpoints (DINOv2, SAM ViT-H, MedSAM2):
+
+```bash
+uv run python src/data/download_weights.py --all-public
+```
+
+FlexiCT-2D is a Google Drive file — save it as `pretrain/flexict_2d_teacher.pth`.
 
 ---
 
@@ -137,7 +149,7 @@ pretrain/dinov3_vitb16_pretrain_lvd1689m-73cec8be.pth   # optional
 INSID3 is a git submodule at `third_party/INSID3` (not a loose clone). Init it before inference:
 
 ```bash
-git submodule update --init
+git submodule update --init --recursive
 ```
 
 ---
@@ -162,9 +174,17 @@ uv run python src/run_insid3.py --dataset polyp --model-size small --preview 1 -
 uv run python src/run_insid3.py --dataset polyp
 uv run python src/run_insid3.py --dataset kidney_tumor
 uv run python src/run_insid3.py --dataset cardiac
+
+# Phase 6–8 reuse results/<dataset>/episodes.json (never re-sample)
+python -m src.methods.gfsam --dataset polyp --episodes-json results/polyp/episodes.json
+python -m src.methods.matcher --dataset polyp --episodes-json results/polyp/episodes.json
+python -m src.methods.insid3 --backbone flexict2d --dataset kidney_tumor \
+  --episodes-json results/kidney_tumor/episodes.json \
+  --output-dir results/flexict2d/debiased
+python -m src.methods.medsam2 --dataset polyp --episodes-json results/polyp/episodes.json
 ```
 
-JSON and predicted masks go under `--output-dir` (`episodes.json` or `metrics.json`, plus `preds/`). The default is `results/<dataset>/`. Ablations pass a nested run directory, e.g. `results/cardiac/five-shot`.
+INSID3 JSON and predicted masks go under `--output-dir` (`episodes.json` or `metrics.json`, plus `preds/`). The default is `results/<dataset>/`. Ablations pass a nested run directory, e.g. `results/cardiac/five-shot`. Phase 6–8 write `results/<method>/<dataset>/` and do not overwrite the Phase 3 snapshot.
 
 If `data/processed` exists:
 
